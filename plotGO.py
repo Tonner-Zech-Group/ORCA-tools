@@ -12,41 +12,30 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib import pyplot as plt
 from ase.units import create_units
 
-def plot(xAxis, iterations, labels, filename, lw=3, s=0):
+def plot(xAxis, iterations, labels, filename, lw=3, s=0, show=False):
     msbig = 9
     for i_label, label in enumerate(labels):
         data = np.array([ d[i_label][0] for d in iterations ])
         data_converged = np.array([ d[i_label][-1] for d in iterations ])
-        if True in data_converged:
-            not_converged_max_idx = min(np.where(data_converged == True)[0])
-        else:
-            not_converged_max_idx = len(data)
+        converged_indices = np.where(data_converged == True)[0]
+        not_converged_indices = np.where(data_converged == False)[0]
         ax = plt.figure().gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.xlabel('Step Number')
         plt.ylabel(label)
         plt.gca().yaxis.grid(True)
         plt.plot(xAxis, data, color='black', ls=':', lw=lw)
-        plt.scatter(xAxis[0:not_converged_max_idx], data[0:not_converged_max_idx], marker='x', color='red', s=(msbig+s)**2)
-        plt.scatter(xAxis[not_converged_max_idx:], data[not_converged_max_idx:], marker='x', color='green', s=(msbig+s)**2)
+        plt.scatter(xAxis[not_converged_indices], data[not_converged_indices], marker='x', color='red', s=(msbig+s)**2)
+        plt.scatter(xAxis[converged_indices], data[converged_indices], marker='x', color='green', s=(msbig+s)**2)
         #plt.legend()
         plt.tight_layout()
         plt.savefig("{}_{}.png".format(filename,label.replace(' ', '_')))
-        #plt.show()
+        if show:
+            plt.show()
         plt.close()
 
 
-def main(filename='convergence.png', presentation=False):
-    input_file = [ f for f in glob.glob('*.inp') ]
-    if len(input_file) > 1:
-        raise ValueError("More than one input file found.")
-    elif len(input_file) == 0:
-        raise ValueError("No inp file found.")
-
-    # get output file
-    output_file = input_file[0].replace('.inp', '.out')
-    assert os.path.isfile(output_file), "Output file {:} does not exist.".format(output_file)
-    print("Reading output file {:}".format(output_file))
+def read_output(output_file):
     iterations = []
     n_iterations = 0
     labels = []
@@ -71,6 +60,40 @@ def main(filename='convergence.png', presentation=False):
                     if line == len(line) * line[0]: #only dots
                         break
             line = f.readline()
+    return iterations, labels
+
+def plotGO(filename='convergence.png', presentation=False, path='.', show=False):
+    # check for numerical subfolders
+    print(glob.glob(os.path.join(path,'*')))
+    subfolders = [ int(f) for f in glob.glob(os.path.join(path,'*')) if os.path.isdir(f) and f.isdigit() ]
+    subfolders.sort()
+    subfolders = [ str(d) for d in subfolders ]
+    print("Found {} numerical subfolders, iterating over them and root:".format(len(subfolders)), end=' ')
+    subfolders.append(os.path.join(path, '.'))
+    iterations = []
+    labels = []
+    for dir in subfolders:
+        if dir == '.':
+            print("root", end=', ')
+        else:
+            print(dir, end=', ')
+        input_file = [ f for f in glob.glob(os.path.join(dir,'*.inp')) if not 'scfhess.inp' in f ]
+        if len(input_file) > 1:
+            raise ValueError("More than one input file found.")
+        elif len(input_file) == 0:
+            print("\n No .inp file found in {:}, skipping.".format(dir))
+            continue
+        # get output file
+        output_file = input_file[0].replace('.inp', '.out')
+        assert os.path.isfile(output_file), "Output file {:} does not exist.".format(output_file)
+        #print("Reading output file {:}".format(output_file))
+        tmp, tmp_labels = read_output(output_file)
+        iterations.extend(tmp)
+        labels.append(tmp_labels)
+    print("Done!")
+    n_iterations = len(iterations)
+    assert len(set([" ".join(l) for l in labels])) == 1, "Found different labels in different subfolders!"
+    labels = labels[0]
     print("Found the following labels: {}".format(", ".join(labels)))
 
     if presentation:
@@ -82,7 +105,8 @@ def main(filename='convergence.png', presentation=False):
         lw = 3
         s = 0
 
-    plot(np.arange(1, n_iterations + 1), iterations, labels, filename=filename, lw=lw, s=s)
+    fn = os.path.join(path, filename)
+    plot(np.arange(1, n_iterations + 1), iterations, labels, filename=fn, lw=lw, s=s, show=show)
 
 
 if __name__ == "__main__":
@@ -93,4 +117,4 @@ if __name__ == "__main__":
     parser.add_argument('--file', help='Plot Filename Beginning, will be appended with _<label>.png', default='convergence')
     parser.add_argument('--presentation', help='Presentation Mode (i.e. thicker lines)', action='store_true')
     args = parser.parse_args()
-    main(args.file, args.presentation)
+    plotGO(args.file, args.presentation)
