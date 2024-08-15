@@ -1,19 +1,13 @@
-#!/usr/bin/env python3
-#
-# Script to plot ORCA NEB calculation results
-# by Patrick Melix
-# 2023/04
-#
-# You can import the module and then call .main() or use it as a script
-# Needs grep and tail.
-import argparse, os, subprocess, sys, glob
+import argparse
+import glob
+import os
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 from matplotlib import pyplot as plt
 from ase.units import create_units
 
 
-def plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, filename, forces=None, lw=3, s=0, highlight=None, dispersion=None, unit_label='kJ/mol'):
+def make_neb_plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, filename, forces=None, lw=3, s=0, highlight=None, dispersion=None, unit_label='kJ/mol', show=False):
     msbig = 9
     ax = plt.figure().gca()
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -60,11 +54,12 @@ def plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, filename
     plt.legend()
     plt.tight_layout()
     plt.savefig(filename)
-    #plt.show()
+    if show:
+        plt.show()
     plt.close()
 
 
-def main(filename='NEB.png', presentation=False, highlight=None, plot_all=False, plot_dispersion=False, unit='kJ/mol'):
+def plot_orca_neb(filename='NEB.png', presentation=False, highlight=None, plot_all=False, plot_dispersion=False, unit='kJ/mol', path='.', show=False):
     unitDict = create_units('2014')
     bohr2ang = unitDict['Bohr'] / unitDict['Angstrom']
     conv = unitDict['Hartree'] #ORCA uses Hartree
@@ -78,7 +73,7 @@ def main(filename='NEB.png', presentation=False, highlight=None, plot_all=False,
     print("Conversion factor from Hartree to {}: {:}".format(unit, conv))
     print("Conversion factor from Bohr to Å: {:}".format(bohr2ang))
 
-    interp_file = [ f for f in glob.glob('*.interp') if not ".final." in f ]
+    interp_file = [ f for f in glob.glob(os.path.join(path,'*.interp')) if ".final." not in f ]
     if len(interp_file) > 1:
         raise ValueError("More than one interp file found.")
     elif len(interp_file) == 0:
@@ -159,25 +154,24 @@ def main(filename='NEB.png', presentation=False, highlight=None, plot_all=False,
         # dispersion -= dispersion[0]
         # dispersion /= conv
 
-    plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, filename, forces, lw=lw, s=s, highlight=highlight, dispersion=dispersion, unit_label=unit)
+    fn = os.path.join(path, f"{filename}.png")
+    make_neb_plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, fn, forces, lw=lw, s=s, highlight=highlight, dispersion=dispersion, unit_label=unit, show=show)
 
     if plot_all:
         #plot the main image and then one with every point highlighted
-        filename = filename.split('.')
-        filename[-2] += "-{:02d}"
-        filename = ".".join(filename)
+        filename += "-{:02d}.png"
         for i in range(n_images):
-            plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, filename.format(i), forces, lw=lw, s=s, highlight=i, dispersion=dispersion, unit_label=unit)
+            fn = os.path.join(path, filename.format(i))
+            make_neb_plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, fn, forces, lw=lw, s=s, highlight=i, dispersion=dispersion, unit_label=unit, show=show)
 
 
 if __name__ == "__main__":
-    exec(open("/home/patrickm/git/Python4ChemistryTools/mpl-settings.py").read())
     parser = argparse.ArgumentParser(description='Plot orca NEB results')
-    parser.add_argument('--file', help='Plot Filename', default='NEB.png')
+    parser.add_argument('--file', help='Plot Filename', default='NEB')
     parser.add_argument('--presentation', help='Presentation Mode (i.e. thicker lines)', action='store_true')
     parser.add_argument('--highlight', help='Circle Point N', type=int, default=None)
     parser.add_argument('--plotall', help='Create main plot and each highlighted plot.', action='store_true')
     parser.add_argument('--plotdispersion', help='Include dispersion contributions in plot.', action='store_true')
     parser.add_argument('--unit', help='Set the unit used to plot, must be ase compatible.', default='kJ/mol')
     args = parser.parse_args()
-    main(args.file, args.presentation, args.highlight, args.plotall, args.plotdispersion, args.unit)
+    plot_orca_neb(args.file, args.presentation, args.highlight, args.plotall, args.plotdispersion, args.unit)

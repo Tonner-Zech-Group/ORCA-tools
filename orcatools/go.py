@@ -1,24 +1,17 @@
-#!/usr/bin/env python3
-#
-# Script to plot ORCA Geometry Convergence Output
-# by Patrick Melix
-# 2023/05
-#
-# You can import the module and then call .main() or use it as a script
-# Needs grep and tail.
-import argparse, os, subprocess, sys, glob
+import argparse
+import os
+import glob
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 from matplotlib import pyplot as plt
-from ase.units import create_units
 
-def plot(xAxis, iterations, labels, filename, lw=3, s=0, show=False):
+def make_go_plot(xAxis, iterations, labels, filename, lw=3, s=0, show=False):
     msbig = 9
     for i_label, label in enumerate(labels):
         data = np.array([ d[i_label][0] for d in iterations ])
         data_converged = np.array([ d[i_label][-1] for d in iterations ])
-        converged_indices = np.where(data_converged == True)[0]
-        not_converged_indices = np.where(data_converged == False)[0]
+        converged_indices = np.where(data_converged is True)[0]
+        not_converged_indices = np.where(data_converged is False)[0]
         ax = plt.figure().gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.xlabel('Step Number')
@@ -62,7 +55,7 @@ def read_output(output_file):
             line = f.readline()
     return iterations, labels
 
-def plotGO(filename='convergence.png', presentation=False, path='.', show=False):
+def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=False):
     # check for numerical subfolders
     print(glob.glob(os.path.join(path,'*')))
     subfolders = [ int(f) for f in glob.glob(os.path.join(path,'*')) if os.path.isdir(f) and f.isdigit() ]
@@ -77,7 +70,7 @@ def plotGO(filename='convergence.png', presentation=False, path='.', show=False)
             print("root", end=', ')
         else:
             print(dir, end=', ')
-        input_file = [ f for f in glob.glob(os.path.join(dir,'*.inp')) if not 'scfhess.inp' in f ]
+        input_file = [ f for f in glob.glob(os.path.join(dir,'*.inp')) if 'scfhess.inp' not in f ]
         if len(input_file) > 1:
             raise ValueError("More than one input file found.")
         elif len(input_file) == 0:
@@ -106,15 +99,12 @@ def plotGO(filename='convergence.png', presentation=False, path='.', show=False)
         s = 0
 
     fn = os.path.join(path, filename)
-    plot(np.arange(1, n_iterations + 1), iterations, labels, filename=fn, lw=lw, s=s, show=show)
+    make_go_plot(np.arange(1, n_iterations + 1), iterations, labels, filename=fn, lw=lw, s=s, show=show)
 
 
 if __name__ == "__main__":
-    f = "/home/patrickm/git/Python4ChemistryTools/mpl-settings.py"
-    if os.path.isfile(f):
-        exec(open(f).read())
     parser = argparse.ArgumentParser(description='Plot ORCA Geometry Optimization Convergence')
     parser.add_argument('--file', help='Plot Filename Beginning, will be appended with _<label>.png', default='convergence')
     parser.add_argument('--presentation', help='Presentation Mode (i.e. thicker lines)', action='store_true')
     args = parser.parse_args()
-    plotGO(args.file, args.presentation)
+    plot_orca_go(args.file, args.presentation)
