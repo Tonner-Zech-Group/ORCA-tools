@@ -84,7 +84,7 @@ def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=
         labels.append(tmp_labels)
     print("Done!")
     n_iterations = len(iterations)
-    assert len(set([" ".join(l) for l in labels])) == 1, "Found different labels in different subfolders!"
+    assert len(set([" ".join(la) for la in labels])) == 1, "Found different labels in different subfolders!"
     labels = labels[0]
     print("Found the following labels: {}".format(", ".join(labels)))
 
