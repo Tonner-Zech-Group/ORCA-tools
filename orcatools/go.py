@@ -57,7 +57,6 @@ def read_output(output_file):
 
 def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=False):
     # check for numerical subfolders
-    print(glob.glob(os.path.join(path,'*')))
     subfolders = [ int(f) for f in glob.glob(os.path.join(path,'*')) if os.path.isdir(f) and f.isdigit() ]
     subfolders.sort()
     subfolders = [ str(d) for d in subfolders ]
