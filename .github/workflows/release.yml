@@ -9,11 +9,11 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'     
+        description: 'Log level'
         required: true
         default: 'warning'
       tags:
-        description: 'Release'  
+        description: 'Release'
 
 permissions:
   packages: write
@@ -73,8 +73,8 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        title: Automated Release
-        
+        title: ${{ github.ref_name }}
+
   publish-to-pypi:
     name: Publish Python distribution to PyPI
     needs:
@@ -94,7 +94,6 @@ jobs:
     - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        repository-url: https://pypi.org/legacy/
         password: ${{ secrets.PYPI_API_TOKEN }}
 
-        
+
