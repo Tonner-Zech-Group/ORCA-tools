@@ -2,17 +2,9 @@
 import math
 import os
 import pathlib
-import sys
 import tempfile
-
 import numpy as np
 from ase.io import read
-from sys import argv
-from ase import Atoms
-from ase.visualize import view
-from pathlib import Path
-import csv
-from decimal import Decimal
 import ase.io
 from ase import Atoms
 from geodesic_interpolate.interpolation import redistribute
@@ -129,36 +121,45 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     n_target = lcm(num_segments, (nimages_tot - 1)) + 1
     # Dumb
     # n_target = ((nimages_tot - 1) * num_segments) + 1
-    if verbose: print("n_target", n_target) ## Debug
+    if verbose:
+        print("n_target", n_target) ## Debug
 
     n_generated = n_target - 2 - (len(traj) - 2)
-    if verbose: print("n_generated", n_generated)
+    if verbose:
+        print("n_generated", n_generated)
     n_per_segment = n_generated / num_segments
-    if verbose: print("n_per_segment", n_per_segment)
+    if verbose:
+        print("n_per_segment", n_per_segment)
     total_trj = [traj[0]]
     for i in range(num_segments):
-        if verbose: print(f"Segment: {i+ 1} of {num_segments}")
+        if verbose:
+            print(f"Segment: {i+ 1} of {num_segments}")
         geo_frames = ase_geodesic_interpolate(traj[i], traj[i + 1], n_images=n_per_segment + 1)
         # print("geo_frames", len(geo_frames))
         total_trj = total_trj + geo_frames[1:] + [traj[i + 1]]
     print("Expected: ", n_target, len(total_trj))
     if not use_distance:
-        if verbose: print("Devision by images")
+        if verbose:
+            print("Devision by images")
         ret_images = []
         ret_images.append(total_trj[0])
         counter = 0
-        if verbose: print((n_target - 1), "/", (nimages + 1))
+        if verbose:
+            print((n_target - 1), "/", (nimages + 1))
         step = int((n_target - 1) / (nimages + 1))
-        if verbose: print("step", step)
+        if verbose:
+            print("step", step)
         for i in range(nimages):
             counter += step
-            if verbose: print("counter", counter)
+            if verbose:
+                print("counter", counter)
             ret_images.append(total_trj[counter])
         ret_images.append(total_trj[-1])
         return ret_images
     else:
         # calculate RMSD distances between all the images
-        if verbose: print("Devision by distance")
+        if verbose:
+            print("Devision by distance")
         rmsds = [0]
         srmsds = [0]
         sum = 0
@@ -170,13 +171,17 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
             srmsds.append(sum)
         rmsd_per_frame = sum / (nimages + 1)
         ret_images = []
-        if verbose: print("rmsds", srmsds)
-        if verbose: print("length", len(rmsds))
+        if verbose:
+            print("rmsds", srmsds)
+        if verbose:
+            print("length", len(rmsds))
         target_rmsd = []
         for i in range(int(n_target) - 1):
             target_rmsd.append(rmsd_per_frame * i)
-        if verbose: print("target_rmsd", target_rmsd)
-        if verbose: print("length", len(srmsds), len(total_trj))
+        if verbose:
+            print("target_rmsd", target_rmsd)
+        if verbose:
+            print("length", len(srmsds), len(total_trj))
         i = 0
         target_rmsd.append(math.inf)
         while i in range(int(n_target)):
@@ -201,17 +206,20 @@ def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None
         exit(1)
     # Convert the input into a ase trajectory
     if structures is not None:
-        if verbose: print("Creating Trajectory from input structures...")
+        if verbose:
+            print("Creating Trajectory from input structures...")
         traj = []
         for structure in structures:
             atoms = read(structure)
             traj.append(atoms)
     else:
         if os.path.splitext(pathlib.Path(trajectory))[1] == ".xyz":
-            if verbose: print("Reading Trajectory from input xyz file")
+            if verbose:
+                print("Reading Trajectory from input xyz file")
             traj = read(trajectory, index=":")
         elif os.path.splitext(pathlib.Path(trajectory))[1] == ".allxyz":
-            if verbose: print("Reading Trajectory from input allxyz file")
+            if verbose:
+                print("Reading Trajectory from input allxyz file")
             traj = read_allxyz(trajectory)
         else:
             print(f"File format {os.path.splitext(pathlib.Path(trajectory))[1]} is not supported.")
@@ -223,11 +231,13 @@ def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None
     # Format output file
     outpath = pathlib.Path(output)
     if os.path.splitext(outpath)[1] == ".xyz":
-        if verbose: print("Writing Trajectory to output xyz file")
+        if verbose:
+            print("Writing Trajectory to output xyz file")
         ase.io.write(outpath, output_traj, format="xyz")
         return output_traj
     elif os.path.splitext(outpath)[1] == ".allxyz":
-        if verbose: print("Writing Trajectory to output allxyz file")
+        if verbose:
+            print("Writing Trajectory to output allxyz file")
         write_allxyz(output_traj, outpath)
         return output_traj
     else:
