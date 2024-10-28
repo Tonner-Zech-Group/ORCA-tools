@@ -13,5 +13,6 @@ setup(
    author_email='patrick.melix@uni-leipzig.de',
    url="https://github.com/Tonner-Zech-Group/ORCA-tools",
    packages=['orcatools'],
-   install_requires=['ase', 'numpy', 'matplotlib']
+   install_requires=['ase', 'numpy', 'matplotlib'],
+   dependency_links = ['https://github.com/virtualzx-nad/geodesic-interpolate.git']
 )

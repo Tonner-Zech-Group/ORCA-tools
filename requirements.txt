@@ -1,3 +1,4 @@
 ase
 matplotlib
 numpy
+geodesic_interpolate
