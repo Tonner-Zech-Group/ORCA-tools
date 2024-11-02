@@ -121,6 +121,13 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     n_target = lcm(num_segments, (nimages_tot - 1)) + 1
     # Dumb
     # n_target = ((nimages_tot - 1) * num_segments) + 1
+    # Distance mode will use one image twice if the number of images matches the output
+    # therfore the calculated images should be doubled if they match the output number
+    if use_distance:
+        if n_target == nimages:
+            if verbose:
+                print("Increasing image count for distance based interpolation")
+            n_target = ((n_target - 1) * 2) + 1
     if verbose:
         print("n_target", n_target) ## Debug
 
@@ -151,8 +158,6 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
             print("step", step)
         for i in range(nimages):
             counter += step
-            if verbose:
-                print("counter", counter)
             ret_images.append(total_trj[counter])
         ret_images.append(total_trj[-1])
         return ret_images
@@ -172,7 +177,7 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
         rmsd_per_frame = sum / (nimages + 1)
         ret_images = []
         if verbose:
-            print("rmsds", srmsds)
+            print("srmsds", srmsds)
         if verbose:
             print("length", len(rmsds))
         target_rmsd = []
@@ -196,7 +201,7 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
 
 def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None, distance=False, verbose=False):
     if verbose:
-        print("Reinterpolation tool V0.0.2 - 25.10.2024")
+        print("Reinterpolation tool V0.0.3 - 02.11.2024")
     # Validate that there is one input
     if structures is None and trajectory is None:
         print("Please specify at least one structure or trajectory.")
