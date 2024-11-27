@@ -2,7 +2,6 @@
 import math
 import os
 import pathlib
-import tempfile
 import numpy as np
 from ase.io import read
 import ase.io
@@ -10,6 +9,7 @@ from ase import Atoms
 from geodesic_interpolate.interpolation import redistribute
 from geodesic_interpolate.geodesic import Geodesic
 import argparse
+from io import StringIO
 
 # Mathe
 def gcd(a, b):
@@ -27,12 +27,8 @@ def read_allxyz(filename):
     with open(filename, "r") as f:
         file = f.read()
     xyz = file.replace(">\n", "")
-    tmp_dir = tempfile.gettempdir()
-    file = os.path.join(tmp_dir, "structure.xyz")
-    f = open(file, "w")
-    f.write(xyz)
-    f.close()
-    read_atoms = ase.io.read(file, index=':')
+    file = StringIO(xyz)
+    read_atoms = ase.io.read(file, index=':', format='xyz')
     return read_atoms
 
 def center_all(structures):
