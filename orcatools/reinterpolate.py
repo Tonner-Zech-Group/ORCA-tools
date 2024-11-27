@@ -1,4 +1,4 @@
-#!/home/franzthiemann/ThC/bin/vnev_arch/bin/python
+#!/usr/bin/env python3
 import math
 import os
 import pathlib
@@ -38,12 +38,15 @@ def center_all(structures):
         new_structures.append(structure)
     return new_structures
 
-def convert_xyz(source, destination):
-    with open(source, "r") as xyz_file, open(destination, "w") as allxyz_file:
+def write_allxyz(trajectory, filename):
+    with StringIO() as file, open(filename, "w") as allxyz_file:
+        file.name = "file.xyz"
+        ase.io.write(file, trajectory, format="xyz")
+        file.seek(0)
         first_frame = True
         while True:
             # Read number of atoms
-            num_atoms_line = xyz_file.readline()
+            num_atoms_line = file.readline()
             if not num_atoms_line:
                 break  # End of file
 
@@ -55,7 +58,7 @@ def convert_xyz(source, destination):
             num_atoms = int(num_atoms_line.strip())
 
             # Read comment line (or metadata)
-            comment_line = xyz_file.readline().strip()
+            comment_line = file.readline().strip()
 
             # Write the frame to the .allxyz file
             allxyz_file.write(f"{num_atoms}\n")
@@ -63,15 +66,8 @@ def convert_xyz(source, destination):
 
             # Read each atom's data and write it to the .allxyz file
             for _ in range(num_atoms):
-                atom_data = xyz_file.readline()
+                atom_data = file.readline()
                 allxyz_file.write(atom_data)
-
-
-def write_allxyz(trajectory, filename):
-    tmp_dir = tempfile.gettempdir()
-    file = os.path.join(tmp_dir, "output.xyz")
-    ase.io.write(file, trajectory, format="xyz")
-    convert_xyz(file, filename)
 
 
 def ase_geodesic_interpolate(initial_mol, final_mol, n_images=20, friction=0.01, dist_cutoff=3, scaling=1.7, sweep=None,
