@@ -125,12 +125,6 @@ def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=
         tmp, tmp_labels = read_output(output_file)
         # Use add the documented units to the labels
         tmp, unit_labels = convert_units(tmp, tmp_labels, target=unit)
-        for i, list in enumerate(tmp):
-            try:
-                test= list[4]
-            except:
-                print("I", i)
-                print("l", list)
         iterations.extend(tmp)
         labels.append(tmp_labels)
     print("Done!")
