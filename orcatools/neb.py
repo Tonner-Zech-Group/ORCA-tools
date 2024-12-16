@@ -13,7 +13,7 @@ def make_neb_plot(reactionCoord, reactionCoordImageAxis, energies, energySpline,
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     plt.xlabel('Reaction Coordinate')# [Å]
     ax.set_xticklabels([]) #no numbers on x
-    plt.ylabel(r'$\Delta E$ [{}]'.format(unit_label))
+    plt.ylabel("$\\Delta E$ / " + unit_label)
     #plt.ylim([-10**exp,10**exp])
     #plt.yscale('symlog')
     #plt.gca().yaxis.grid(True)
@@ -63,14 +63,17 @@ def plot_orca_neb(filename='NEB.png', presentation=False, highlight=None, plot_a
     unitDict = create_units('2014')
     bohr2ang = unitDict['Bohr'] / unitDict['Angstrom']
     conv = unitDict['Hartree'] #ORCA uses Hartree
+    unit_stdout = unit
     if '/' in unit:
         tmp = unit.split('/')
         conv /= unitDict[tmp[0]]
         for u in tmp[1:]:
             conv *= unitDict[u]
+        unit = "$\\mathrm{" + tmp[0] + "}\\, \\mathrm{" + tmp[1] + "}^{-1}$"
     else:
         conv /= unitDict[unit]
-    print("Conversion factor from Hartree to {}: {:}".format(unit, conv))
+        unit = "$" + unit + "$"
+    print("Conversion factor from Hartree to {}: {:}".format(unit_stdout, conv))
     print("Conversion factor from Bohr to Å: {:}".format(bohr2ang))
 
     interp_file = [ f for f in glob.glob(os.path.join(path,'*.interp')) if ".final." not in f ]
