@@ -1,6 +1,8 @@
 import argparse
 import os
 import glob
+import re
+
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 from matplotlib import pyplot as plt
@@ -36,31 +38,33 @@ def read_output(output_file):
     n_iterations = 0
     labels = []
     with open(output_file, 'r') as f:
-        line = f.readline()
-        while line:
-            if '|Geometry convergence|' in line:
-                iterations.append([])
-                n_iterations += 1
-                line = f.readline() #skip header
-                line = f.readline() #skip --- line
-                if n_iterations == 1:
-                    # First step of geometry optimization does not have an energy change,
-                    # this leads to the plot being missing
-                    line = "Energy change      0.0000000000            0.0000050000      NO"
-                else:
-                    line = f.readline() #read first data line
-                while line:
-                    tmp = line.split()
-                    if n_iterations == 1:
-                        labels.append(" ".join(reversed(tmp[-4::-1])))
-                    iterations[-1].append([])
-                    iterations[-1][-1].append(float(tmp[-3])) #value
-                    iterations[-1][-1].append(float(tmp[-2])) #tolerance
-                    iterations[-1][-1].append(bool(tmp[-1] == "YES")) #converged
-                    line = f.readline().strip()
-                    if line == len(line) * line[0]: #only dots
+        file = f.read()
+        get_lines = r"[-]+\|Geometry convergence\|[-]+\n(?:.*\n)*?[-|\s]+\n((?:\s*\S+\s\S+\s+-?\d+\.\d+\s+\d+\.\d+\s+(?:YES|NO)\s*\n)+)"
+        get_values = r"\s*(\S+\s\S+)\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(YES|NO)"
+        sections = re.findall(get_lines, file)
+        iterations = []
+        labels = []
+        # Very inefficient dual pass method, but I do not know a safe way to avoid this
+        # Pass 1 get Labels
+        for section in sections:
+            values = re.findall(get_values, section)
+            for value in values:
+                if value[0] not in labels:
+                    labels.append(value[0])
+        # second pass to fill the data array with values
+        for section in sections:
+            frame = []
+            values = re.findall(get_values, section)
+            for label in labels:
+                found = False
+                for value in values:
+                    if label == value[0]:
+                        frame.append([float(value[1]), float(value[2]), bool(value[3] == "YES")])
+                        found = True
                         break
-            line = f.readline()
+                if not found:
+                    frame.append([float("NaN"), float("NaN"), False])
+            iterations.append(frame)
     return iterations, labels
 
 def convert_units(data, labels, target="au"):
@@ -78,13 +82,13 @@ def convert_units(data, labels, target="au"):
         for i in range(len(unit_labels)):
             if unit_labels[i] == "Energy change":
                 unit_labels[i] = "Energy change / $\\mathrm{kJ}\\, \\mathrm{mol}^{-1}$"
-                # data = convert_data(data, i, units.Hartree * units.mol / units.kJ)
+                data = convert_data(data, i, units.Hartree * units.mol / units.kJ)
             if "gradient" in unit_labels[i]:
                 unit_labels[i] = unit_labels[i] + " / $\\mathrm{kJ}\\, \\mathrm{mol}^{-1}\\, \\mathrm{nm}^{-1}$"
-                # data = convert_data(data, i, (units.Hartree * units.mol / units.kJ) * (units.nm / units.Bohr))
+                data = convert_data(data, i, (units.Hartree * units.mol / units.kJ) * (units.nm / units.Bohr))
             if "step" in unit_labels[i]:
                 unit_labels[i] = unit_labels[i] + " / $\\mathrm{nm}$"
-                # data = convert_data(data, i, units.Bohr / units.nm)
+                data = convert_data(data, i, units.Bohr / units.nm)
     return data, unit_labels
 
 def convert_data(data, index, factor):
