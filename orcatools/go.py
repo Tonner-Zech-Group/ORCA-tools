@@ -16,7 +16,7 @@ def make_go_plot(xAxis, iterations, labels, filename, filelabels=None, lw=3, s=0
         data = np.array([ d[i_label][0] for d in iterations ])
         data_converged = np.array([ d[i_label][-1] for d in iterations ])
         converged_indices = np.where(data_converged)[0]
-        not_converged_indices = np.where(data_converged == False)[0]
+        not_converged_indices = np.where(~data_converged)[0]
         ax = plt.figure().gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.xlabel('Step Number')
@@ -25,7 +25,6 @@ def make_go_plot(xAxis, iterations, labels, filename, filelabels=None, lw=3, s=0
         plt.plot(xAxis, data, color='black', ls=':', lw=lw)
         plt.scatter(xAxis[not_converged_indices], data[not_converged_indices], marker='x', color='red', s=(msbig+s)**2)
         plt.scatter(xAxis[converged_indices], data[converged_indices], marker='x', color='green', s=(msbig+s)**2)
-        #plt.legend()
         plt.tight_layout()
         plt.savefig("{}_{}.png".format(filename,filelabels[i_label].replace(' ', '_')))
         if show:
@@ -34,9 +33,6 @@ def make_go_plot(xAxis, iterations, labels, filename, filelabels=None, lw=3, s=0
 
 
 def read_output(output_file):
-    iterations = []
-    n_iterations = 0
-    labels = []
     with open(output_file, 'r') as f:
         file = f.read()
         get_lines = r"[-]+\|Geometry convergence\|[-]+\n(?:.*\n)*?[-|\s]+\n((?:\s*\S+\s\S+\s+-?\d+\.\d+\s+\d+\.\d+\s+(?:YES|NO)\s*\n)+)"
