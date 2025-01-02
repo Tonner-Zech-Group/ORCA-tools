@@ -96,9 +96,8 @@ def convert_data(data, index, factor):
 
 def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=False, unit="si"):
     # check for numerical subfolders
-    subfolders = [ int(f) for f in glob.glob(os.path.join(path,'*')) if os.path.isdir(f) and f.isdigit() ]
+    subfolders = [ os.path.basename(f) for f in glob.glob(os.path.join(path,'*')) if os.path.isdir(f) and os.path.basename(f).isdigit() ]
     subfolders.sort()
-    subfolders = [ str(d) for d in subfolders ]
     print("Found {} numerical subfolders, iterating over them and root:".format(len(subfolders)), end=' ')
     subfolders.append(os.path.join(path, '.'))
     iterations = []
@@ -116,7 +115,9 @@ def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=
             continue
         # get output file
         output_file = input_file[0].replace('.inp', '.out')
-        assert os.path.isfile(output_file), "Output file {:} does not exist.".format(output_file)
+        if not os.path.isfile(output_file):
+            print("\n [WARNING] Output file {:} does not exist.".format(output_file))
+            continue
         #print("Reading output file {:}".format(output_file))
         tmp, tmp_labels = read_output(output_file)
         # Use add the documented units to the labels
