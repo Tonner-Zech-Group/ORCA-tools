@@ -66,6 +66,8 @@ def read_output(output_file):
     return iterations, labels
 
 def convert_units(data, labels, target="au"):
+    if target not in ("au", "si"):
+        raise ValueError(f"Unknown unit system '{target}', choose 'au' or 'si'.")
     unit_labels = labels.copy()
     # print(data)
     if target == "au":
@@ -148,6 +150,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot ORCA Geometry Optimization Convergence')
     parser.add_argument('--file', help='Plot Filename Beginning, will be appended with _<label>.png', default='convergence')
     parser.add_argument('--presentation', help='Presentation Mode (i.e. thicker lines)', action='store_true')
-    parser.add_argument("--unit", "-u", help="Unit System to use for plotting, choose between 'au' or 'si'", default='si')
+    parser.add_argument("--unit", "-u", help="Unit system to use for plotting", choices=['au', 'si'], default='si')
     args = parser.parse_args()
     plot_orca_go(args.file, presentation=args.presentation, unit=args.unit)

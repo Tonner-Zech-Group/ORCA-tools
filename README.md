@@ -16,6 +16,12 @@ pip install orcatools
 
 You can either run `python3 -m orcatools` to use the command line interface, or import the needed features in your own scripts.
 
+Geometry optimization convergence plots use SI units by default (kJ/mol, kJ/mol/nm, nm). Pass `--unit au` for atomic units as printed by ORCA (E_h, E_h/a_0, a_0):
+
+```bash
+python3 -m orcatools go-convergence --unit au
+```
+
 E.g. in a Jupyter notebook you can do
 
 ```python
