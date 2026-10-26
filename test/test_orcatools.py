@@ -1,9 +1,12 @@
 import math
-import unittest
-import ase.io
-import numpy as np
 import os
 import tempfile
+import unittest
+from unittest import mock
+
+import ase.io
+import numpy as np
+
 
 def read_allxyz(filename):
     with open(filename, "r") as f:
@@ -11,9 +14,8 @@ def read_allxyz(filename):
     xyz = file.replace(">\n", "")
     tmp_dir = tempfile.gettempdir()
     file = os.path.join(tmp_dir, "structure.xyz")
-    f = open(file, "w")
-    f.write(xyz)
-    f.close()
+    with open(file, "w") as f:
+        f.write(xyz)
     read_atoms = ase.io.read(file, index=':')
     return read_atoms
 
@@ -109,6 +111,14 @@ class TestOrcatools(unittest.TestCase):
                       verbose=True)
         # check if the distance between C0 and C5 decreases
         assert check_dist("traj2.xyz", 0, 5)
+
+    def test_interpolation_error_propagates(self):
+        from orcatools.reinterpolate import ase_geodesic_interpolate
+        start = ase.io.read("1.xyz")
+        end = ase.io.read("2.xyz")
+        with mock.patch("orcatools.reinterpolate.Geodesic.smooth", side_effect=RuntimeError("smoothing failed")), \
+                self.assertRaises(RuntimeError):
+            ase_geodesic_interpolate(start, end, n_images=5, sweep=False)
 
 
 

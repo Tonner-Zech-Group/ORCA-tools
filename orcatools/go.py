@@ -1,12 +1,14 @@
+#!/usr/bin/env python3
 import argparse
-import os
 import glob
+import os
 import re
 
 import numpy as np
-from matplotlib.ticker import MaxNLocator
+from ase import units
 from matplotlib import pyplot as plt
-import ase.units as units
+from matplotlib.ticker import MaxNLocator
+
 
 def make_go_plot(xAxis, iterations, labels, filename, filelabels=None, lw=3, s=0, show=False):
     msbig = 9
@@ -89,7 +91,6 @@ def convert_units(data, labels, target="au"):
 
 def convert_data(data, index, factor):
     for i in range(len(data)):
-        pass
         data[i][index][0] = data[i][index][0] * factor
     return data
 
@@ -98,7 +99,7 @@ def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=
     # check for numerical subfolders
     subfolders = [ os.path.basename(f) for f in glob.glob(os.path.join(path,'*')) if os.path.isdir(f) and os.path.basename(f).isdigit() ]
     subfolders.sort()
-    print("Found {} numerical subfolders, iterating over them and root:".format(len(subfolders)), end=' ')
+    print(f"Found {len(subfolders)} numerical subfolders, iterating over them and root:", end=' ')
     subfolders.append(os.path.join(path, '.'))
     iterations = []
     labels = []
@@ -111,12 +112,12 @@ def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=
         if len(input_file) > 1:
             raise ValueError("More than one input file found.")
         elif len(input_file) == 0:
-            print("\n No .inp file found in {:}, skipping.".format(dir))
+            print(f"\n No .inp file found in {dir}, skipping.")
             continue
         # get output file
         output_file = input_file[0].replace('.inp', '.out')
         if not os.path.isfile(output_file):
-            print("\n [WARNING] Output file {:} does not exist.".format(output_file))
+            print(f"\n [WARNING] Output file {output_file} does not exist.")
             continue
         #print("Reading output file {:}".format(output_file))
         tmp, tmp_labels = read_output(output_file)
@@ -126,7 +127,7 @@ def plot_orca_go(filename='convergence.png', presentation=False, path='.', show=
         labels.append(tmp_labels)
     print("Done!")
     n_iterations = len(iterations)
-    assert len(set([" ".join(la) for la in labels])) == 1, "Found different labels in different subfolders!"
+    assert len({" ".join(la) for la in labels}) == 1, "Found different labels in different subfolders!"
     labels = labels[0]
     print("Found the following labels: {}".format(", ".join(labels)))
 

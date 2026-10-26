@@ -1,5 +1,6 @@
 
 import argparse
+
 parser = argparse.ArgumentParser(description='Plot ORCA Outputs')
 subparser = parser.add_subparsers(help="Which Type of Operation to perform", dest='subcommand')
 subparser.required = True

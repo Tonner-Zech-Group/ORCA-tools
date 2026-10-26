@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
+import argparse
 import math
 import os
 import pathlib
-import numpy as np
-from ase.io import read
-import ase.io
-from ase import Atoms
-from geodesic_interpolate.interpolation import redistribute
-from geodesic_interpolate.geodesic import Geodesic
-import argparse
+import sys
 from io import StringIO
+
+import ase.io
+import numpy as np
+from ase import Atoms
+from ase.io import read
+from geodesic_interpolate.geodesic import Geodesic
+from geodesic_interpolate.interpolation import redistribute
+
 
 # Mathe
 def gcd(a, b):
@@ -88,17 +91,15 @@ def ase_geodesic_interpolate(initial_mol, final_mol, n_images=20, friction=0.01,
 
     if sweep is None:
         sweep = len(atoms) > 35
-    try:
-        if sweep:
-            smoother.sweep(tol=tol, max_iter=maxiter, micro_iter=microiter)
-        else:
-            smoother.smooth(tol=tol, max_iter=maxiter)
-    finally:
-        all_mols = []
-        for pos in smoother.path:
-            mol = Atoms(atom_string, pos)
-            all_mols.append(mol)
-        return all_mols
+    if sweep:
+        smoother.sweep(tol=tol, max_iter=maxiter, micro_iter=microiter)
+    else:
+        smoother.smooth(tol=tol, max_iter=maxiter)
+    all_mols = []
+    for pos in smoother.path:
+        mol = Atoms(atom_string, pos)
+        all_mols.append(mol)
+    return all_mols
 
 
 def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
@@ -115,11 +116,10 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     # n_target = ((nimages_tot - 1) * num_segments) + 1
     # Distance mode will use one image twice if the number of images matches the output
     # therfore the calculated images should be doubled if they match the output number
-    if use_distance:
-        if n_target == nimages:
-            if verbose:
-                print("Increasing image count for distance based interpolation")
-            n_target = ((n_target - 1) * 2) + 1
+    if use_distance and n_target == nimages:
+        if verbose:
+            print("Increasing image count for distance based interpolation")
+        n_target = ((n_target - 1) * 2) + 1
     if verbose:
         print("n_target", n_target) ## Debug
 
@@ -197,10 +197,10 @@ def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None
     # Validate that there is one input
     if structures is None and trajectory is None:
         print("Please specify at least one structure or trajectory.")
-        exit(1)
+        sys.exit(1)
     if structures is not None and trajectory is not None:
         print("Cannot specify both --structures and --trajectory.")
-        exit(1)
+        sys.exit(1)
     # Convert the input into a ase trajectory
     if structures is not None:
         if verbose:
