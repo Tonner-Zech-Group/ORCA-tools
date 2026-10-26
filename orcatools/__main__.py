@@ -19,10 +19,10 @@ go = subparser.add_parser('go-convergence', help='Plot Geometry Optimization Con
 go.add_argument('--file', help='Plot Filename Beginning, will be appended with _<label>.png', default='convergence')
 
 interpolate = subparser.add_parser('interpolate', help='Interpolation between structures or reinterpolation of trajectories')
-interpolate.add_argument("-n", "--images", type=int, help="Number of images to genereate (excluding start and end)", required=True)
+interpolate.add_argument("-n", "--images", type=int, help="Number of images to generate (excluding start and end)", required=True)
 interpolate.add_argument("-o", "--output", type=str, help="Output file, format can be xyz or allxyz", required=True)
-interpolate.add_argument("-s", "--structures", type=str, nargs='+', help="Structurs to be included in the interpolation ordered from beginning to end", required=False, default=None)
-interpolate.add_argument("-t", "--trajectory", type=str, help="Trajectory to be re-interpolated, formated as xyz or allxyz", required=False, default=None)
+interpolate.add_argument("-s", "--structures", type=str, nargs='+', help="Structures to be included in the interpolation ordered from beginning to end", required=False, default=None)
+interpolate.add_argument("-t", "--trajectory", type=str, help="Trajectory to be re-interpolated, formatted as xyz or allxyz", required=False, default=None)
 interpolate.add_argument("-d", "--distance", action="store_true", help="Distribute images evenly using RMSD distance. This is recommended for NEB trajectories but will break NEB-CI trajectories", required=False, default=False)
 interpolate.add_argument("-v", "--verbose", action='store_true', help="Verbose output", required=False)
 

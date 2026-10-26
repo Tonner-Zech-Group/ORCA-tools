@@ -246,10 +246,10 @@ if __name__ == "__main__":
         description="Re-interpolate trajectories or between structures using geodesic interpolation.",
         epilog=''
     )
-    parser.add_argument("-n", "--images", type=int, help="Number of images to genereate (excluding start and end)", required=True)
+    parser.add_argument("-n", "--images", type=int, help="Number of images to generate (excluding start and end)", required=True)
     parser.add_argument("-o", "--output", type=str, help="Output file, format can be xyz or allxyz", required=True)
-    parser.add_argument("-s", "--structures", type=str, nargs='+', help="Structurs to be included in the interpolation ordered from beginning to end", required=False, default=None)
-    parser.add_argument("-t", "--trajectory", type=str, help="Trajectory to be re-interpolated, formated as xyz or allxyz", required=False, default=None)
+    parser.add_argument("-s", "--structures", type=str, nargs='+', help="Structures to be included in the interpolation ordered from beginning to end", required=False, default=None)
+    parser.add_argument("-t", "--trajectory", type=str, help="Trajectory to be re-interpolated, formatted as xyz or allxyz", required=False, default=None)
     parser.add_argument("-d", "--distance", action="store_true", help="Distribute images evenly using RMSD distance. This is recommended for NEB trajectories but will break NEB-CI trajectories", required=False, default=False)
     parser.add_argument("-v", "--verbose", action='store_true', help="Verbose output", required=False)
     args = parser.parse_args()
