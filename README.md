@@ -4,7 +4,7 @@ Our collection of python tools for [ORCA](https://www.kofo.mpg.de/de/forschung/s
 
 ## Installation
 
-Clone this repository and run `pip install .` inside the main directory. If you want to always use the latest content of the repo you can use the 'developement' install of pip by running `pip install -e .`. Just doing `git pull` to get the latest content of the repo will then automatically result in the usage of the latest code without need to reinstall.
+Clone this repository and run `pip install .` inside the main directory. If you want to always use the latest content of the repo you can use the 'development' install of pip by running `pip install -e .`. Just doing `git pull` to get the latest content of the repo will then automatically result in the usage of the latest code without need to reinstall.
 
 You can also use the latest release by installing it from PyPi:
 

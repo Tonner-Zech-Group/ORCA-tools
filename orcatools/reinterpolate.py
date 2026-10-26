@@ -104,7 +104,7 @@ def ase_geodesic_interpolate(initial_mol, final_mol, n_images=20, friction=0.01,
 
 def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     # Basic idea: Interpolate between each image, combine the path
-    # Path is then split into equidistant images or into images seperated by the same number of invisible images
+    # Path is then split into equidistant images or into images separated by the same number of invisible images
     nimages_tot = nimages + 2
     if nimages_tot == len(traj):
         return traj
@@ -115,7 +115,7 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     # Dumb
     # n_target = ((nimages_tot - 1) * num_segments) + 1
     # Distance mode will use one image twice if the number of images matches the output
-    # therfore the calculated images should be doubled if they match the output number
+    # therefore the calculated images should be doubled if they match the output number
     if use_distance and n_target == nimages:
         if verbose:
             print("Increasing image count for distance based interpolation")
@@ -139,7 +139,7 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     print("Expected: ", n_target, len(total_trj))
     if not use_distance:
         if verbose:
-            print("Devision by images")
+            print("Division by images")
         ret_images = []
         ret_images.append(total_trj[0])
         counter = 0
@@ -156,7 +156,7 @@ def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
     else:
         # calculate RMSD distances between all the images
         if verbose:
-            print("Devision by distance")
+            print("Division by distance")
         rmsds = [0]
         srmsds = [0]
         sum = 0
