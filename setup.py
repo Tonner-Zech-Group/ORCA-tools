@@ -5,7 +5,6 @@ with open("README.md", 'r') as f:
 
 setup(
    name='orcatools',
-   version='1.0',
    description='Python tools for ORCA',
    long_description=long_description,
    long_description_content_type='text/markdown',
