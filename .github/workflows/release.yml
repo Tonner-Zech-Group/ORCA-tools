@@ -1,5 +1,7 @@
 # Publishes the package to PyPI and creates a GitHub release when the version
 # in pyproject.toml changes on main (or when a matching v<version> tag is pushed).
+# To release: bump the version in pyproject.toml and merge to main. The tag
+# v<version> is created by this workflow; nobody needs to push tags by hand.
 
 name: Release Python Package
 
@@ -9,13 +11,10 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
-      tags:
-        description: 'Release'
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   packages: write
@@ -112,6 +111,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
+        skip-existing: true
 
   github-release:
     name: Create GitHub release

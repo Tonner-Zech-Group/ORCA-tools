@@ -6,13 +6,6 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
-      tags:
-        description: 'Test Pypi'
 
 permissions:
   contents: read
@@ -74,5 +67,6 @@ jobs:
       with:
         repository-url: https://test.pypi.org/legacy/
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        skip-existing: true
 
 

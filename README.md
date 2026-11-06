@@ -12,6 +12,10 @@ You can also use the latest release by installing it from PyPi:
 pip install orcatools
 ```
 
+## Releasing
+
+Bump `version` in `pyproject.toml` and merge to `main`. The release workflow then publishes the new version to PyPI and creates the tag `v<version>` with a GitHub release. Merges without a version bump publish nothing, and nobody needs to push tags by hand.
+
 ## Usage
 
 You can either run `python3 -m orcatools` to use the command line interface, or import the needed features in your own scripts.
