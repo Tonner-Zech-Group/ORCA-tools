@@ -1,9 +1,16 @@
+import copy
 import math
+import os
+import subprocess
+import sys
+import tempfile
 import unittest
+from unittest import mock
+
 import ase.io
 import numpy as np
-import os
-import tempfile
+from ase import units
+
 
 def read_allxyz(filename):
     with open(filename, "r") as f:
@@ -11,9 +18,8 @@ def read_allxyz(filename):
     xyz = file.replace(">\n", "")
     tmp_dir = tempfile.gettempdir()
     file = os.path.join(tmp_dir, "structure.xyz")
-    f = open(file, "w")
-    f.write(xyz)
-    f.close()
+    with open(file, "w") as f:
+        f.write(xyz)
     read_atoms = ase.io.read(file, index=':')
     return read_atoms
 
@@ -109,6 +115,36 @@ class TestOrcatools(unittest.TestCase):
                       verbose=True)
         # check if the distance between C0 and C5 decreases
         assert check_dist("traj2.xyz", 0, 5)
+
+    def test_interpolation_error_propagates(self):
+        from orcatools.reinterpolate import ase_geodesic_interpolate
+        start = ase.io.read("1.xyz")
+        end = ase.io.read("2.xyz")
+        with mock.patch("orcatools.reinterpolate.Geodesic.smooth", side_effect=RuntimeError("smoothing failed")), \
+                self.assertRaises(RuntimeError):
+            ase_geodesic_interpolate(start, end, n_images=5, sweep=False)
+
+    def test_go_convert_units(self):
+        from orcatools.go import convert_units
+        labels = ["Energy change", "RMS gradient", "MAX step"]
+        frame = [[1.0, 0.0, True], [1.0, 0.0, True], [1.0, 0.0, True]]
+        _, au_labels = convert_units([copy.deepcopy(frame)], labels, target="au")
+        self.assertEqual(au_labels, ["Energy change / $E_h$", "RMS gradient / $E_h\\, a_0^{-1}$", "MAX step / $a_0$"])
+        si_data, _ = convert_units([copy.deepcopy(frame)], labels, target="si")
+        self.assertAlmostEqual(si_data[0][0][0], units.Hartree * units.mol / units.kJ)
+        self.assertAlmostEqual(si_data[0][2][0], units.Bohr / units.nm)
+        with self.assertRaises(ValueError):
+            convert_units([copy.deepcopy(frame)], labels, target="kcal")
+
+    def test_go_cli_unit_option(self):
+        cmd = [sys.executable, "-m", "orcatools", "go-convergence", "--help"]
+        result = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("{au,si}", result.stdout)
+        cmd = [sys.executable, "-m", "orcatools", "go-convergence", "--unit", "kcal"]
+        result = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("invalid choice", result.stderr)
 
 
 

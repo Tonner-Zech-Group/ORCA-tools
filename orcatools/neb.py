@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
 import argparse
 import glob
 import os
+
 import numpy as np
-from matplotlib.ticker import MaxNLocator
-from matplotlib import pyplot as plt
 from ase.units import create_units
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 
 def make_neb_plot(reactionCoord, reactionCoordImageAxis, energies, energySpline, filename, forces=None, lw=3, s=0, highlight=None, dispersion=None, unit_label='kJ/mol', show=False):
@@ -73,8 +75,8 @@ def plot_orca_neb(filename='NEB.png', presentation=False, highlight=None, plot_a
     else:
         conv /= unitDict[unit]
         unit = "$" + unit + "$"
-    print("Conversion factor from Hartree to {}: {:}".format(unit_stdout, conv))
-    print("Conversion factor from Bohr to Å: {:}".format(bohr2ang))
+    print(f"Conversion factor from Hartree to {unit_stdout}: {conv}")
+    print(f"Conversion factor from Bohr to Å: {bohr2ang}")
 
     interp_file = [ f for f in glob.glob(os.path.join(path,'*.interp')) if ".final." not in f ]
     if len(interp_file) > 1:
@@ -103,7 +105,7 @@ def plot_orca_neb(filename='NEB.png', presentation=False, highlight=None, plot_a
                         if n_images is None:
                             n_images = len(iterations[-1]['images']['x'])
                         else:
-                            assert len(iterations[-1]['images']['x']) == n_images, "Number of images in iteration {:} does not match previous iterations.".format(n_iterations)
+                            assert len(iterations[-1]['images']['x']) == n_images, f"Number of images in iteration {n_iterations} does not match previous iterations."
                         break
             elif 'Interp.' in line:
                 line = f.readline()
@@ -117,7 +119,7 @@ def plot_orca_neb(filename='NEB.png', presentation=False, highlight=None, plot_a
                         iterations[-1]['interpolation']['energy'].append(float(tmp[2]))
                     line = f.readline().strip()
             line = f.readline()
-    print("Found {:} iterations with {} images.".format(n_iterations, n_images))
+    print(f"Found {n_iterations} iterations with {n_images} images.")
 
 
     spline = np.array([iterations[-1]['interpolation']['dist'], iterations[-1]['interpolation']['energy']])

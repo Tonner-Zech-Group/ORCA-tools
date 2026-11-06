@@ -1,5 +1,6 @@
 
 import argparse
+
 parser = argparse.ArgumentParser(description='Plot ORCA Outputs')
 subparser = parser.add_subparsers(help="Which Type of Operation to perform", dest='subcommand')
 subparser.required = True
@@ -17,6 +18,7 @@ neb.add_argument('--file', help='PNG Filename', default='NEB')
 
 go = subparser.add_parser('go-convergence', help='Plot Geometry Optimization Convergence')
 go.add_argument('--file', help='Plot Filename Beginning, will be appended with _<label>.png', default='convergence')
+go.add_argument('--unit', '-u', help='Unit system to use for plotting', choices=['au', 'si'], default='si')
 
 interpolate = subparser.add_parser('interpolate', help='Interpolation between structures or reinterpolation of trajectories')
 interpolate.add_argument("-n", "--images", type=int, help="Number of images to generate (excluding start and end)", required=True)
@@ -33,7 +35,7 @@ if args.subcommand == 'neb':
     plot_orca_neb(args.file, args.presentation, args.highlight, args.plotall, args.plotdispersion, args.unit, args.path)
 elif args.subcommand == 'go-convergence':
     from orcatools.go import plot_orca_go
-    plot_orca_go(args.file, args.presentation, args.path)
+    plot_orca_go(args.file, args.presentation, args.path, unit=args.unit)
 elif args.subcommand == 'interpolate':
     from orcatools.reinterpolate import reinterpolate
     reinterpolate(images=args.images, output=args.output, structures=args.structures, trajectory=args.trajectory,
