@@ -133,6 +133,46 @@ class TestOrcatools(unittest.TestCase):
         with self.assertRaises(ValueError):
             reinterpolate(images=5, structures=["1.xyz"], output="traj.xyz")
 
+    def test_interpolation_path_quality(self):
+        from geodesic_interpolate.coord_utils import align_geom
+
+        from orcatools.reinterpolate import center_all, interpolation_core
+        start = ase.io.read("1.xyz")
+        end = ase.io.read("2.xyz")
+        middle = start.copy()
+        middle.positions = (start.positions + end.positions) / 2
+        # geodesic_interpolate adds random nudges when it bisects; seed for a reproducible path
+        np.random.seed(0)
+        for structures in ([start, end], [start, middle, end]):
+            for use_distance in (False, True):
+                for nimages in (5, 12):
+                    with self.subTest(structures=len(structures), use_distance=use_distance, nimages=nimages):
+                        out = interpolation_core(center_all([s.copy() for s in structures]), nimages=nimages,
+                                                 use_distance=use_distance)
+                        self.assertEqual(len(out), nimages + 2)
+                        steps = np.array([np.sqrt(np.mean((a.positions - b.positions) ** 2))
+                                          for a, b in zip(out, out[1:])])
+                        aligned_steps = np.array([align_geom(a.positions, b.positions)[0]
+                                                  for a, b in zip(out, out[1:])])
+                        # no duplicate frames, and no rigid rotation/translation between neighbours
+                        self.assertGreater(steps.min(), 1e-3)
+                        np.testing.assert_allclose(steps, aligned_steps, atol=1e-3)
+                        # end points keep their internal geometry
+                        self.assertLess(align_geom(start.positions, out[0].positions)[0], 1e-6)
+                        self.assertLess(align_geom(end.positions, out[-1].positions)[0], 1e-6)
+                        if use_distance:
+                            self.assertLess(steps.max() / steps.min(), 1.5)
+        # image mode keeps an interior structure when the numbers allow it (2 segments, 6 steps)
+        out = interpolation_core(center_all([start.copy(), middle.copy(), end.copy()]), nimages=5)
+        self.assertLess(align_geom(middle.positions, out[3].positions)[0], 1e-6)
+
+    def test_reinterpolate_unsupported_formats(self):
+        from orcatools.reinterpolate import reinterpolate
+        with self.assertRaises(ValueError):
+            reinterpolate(images=3, structures=["1.xyz", "2.xyz"], output="traj.pdb")
+        with self.assertRaises(ValueError):
+            reinterpolate(images=3, trajectory="traj.pdb", output="traj.xyz")
+
     def test_go_convert_units(self):
         from orcatools.go import convert_units
         labels = ["Energy change", "RMS gradient", "MAX step"]

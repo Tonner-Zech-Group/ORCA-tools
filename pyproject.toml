@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "orcatools"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="Patrick Melix", email="patrick.melix@uni-leipzig.de" },
   { name="Franz Thiemann", email="franz.thiemann@uni-leipzig.de" },
