@@ -124,6 +124,15 @@ class TestOrcatools(unittest.TestCase):
                 self.assertRaises(RuntimeError):
             ase_geodesic_interpolate(start, end, n_images=5, sweep=False)
 
+    def test_interpolation_needs_two_structures(self):
+        from orcatools.reinterpolate import interpolation_core, reinterpolate
+        start = ase.io.read("1.xyz")
+        for traj in ([], [start]):
+            with self.subTest(structures=len(traj)), self.assertRaises(ValueError):
+                interpolation_core(traj, nimages=5)
+        with self.assertRaises(ValueError):
+            reinterpolate(images=5, structures=["1.xyz"], output="traj.xyz")
+
     def test_go_convert_units(self):
         from orcatools.go import convert_units
         labels = ["Energy change", "RMS gradient", "MAX step"]
