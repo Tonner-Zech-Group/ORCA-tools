@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import math
-import os
 import pathlib
 import sys
 from io import StringIO
@@ -10,6 +9,7 @@ import ase.io
 import numpy as np
 from ase import Atoms
 from ase.io import read
+from geodesic_interpolate.coord_utils import align_geom
 from geodesic_interpolate.geodesic import Geodesic
 from geodesic_interpolate.interpolation import redistribute
 
@@ -23,7 +23,7 @@ def gcd(a, b):
 
 def lcm(a, b):
     '''Return lowest common multiple.'''
-    return a * b / gcd(a, b)
+    return a * b // gcd(a, b)
 
 
 def read_allxyz(filename):
@@ -102,96 +102,86 @@ def ase_geodesic_interpolate(initial_mol, final_mol, n_images=20, friction=0.01,
     return all_mols
 
 
-def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
+def rmsd(a, b):
+    return np.sqrt(np.mean(np.square(a.positions - b.positions)))
+
+
+def moved(atoms, positions):
+    atoms = atoms.copy()
+    atoms.positions = positions
+    return atoms
+
+
+def build_path(traj, n_new):
+    """Join the structures in traj with n_new[i] geodesic frames between traj[i] and traj[i + 1].
+
+    All frames share one frame of reference: traj[0] is centered, every later structure is rotated and
+    translated (internal geometry unchanged) to continue the path without a rigid jump.
+    """
+    current = moved(traj[0], traj[0].positions - np.mean(traj[0].positions, axis=0))
+    path = [current]
+    for i, n in enumerate(n_new):
+        if n > 0:
+            # The geodesic path contains both end points, aligned frame by frame onto the start
+            frames = ase_geodesic_interpolate(current, traj[i + 1], n_images=n + 2)
+            if len(frames) != n + 2:
+                raise RuntimeError(f"Geodesic interpolation returned {len(frames)} frames instead of {n + 2}.")
+            if rmsd(frames[0], current) > 1e-6:
+                raise RuntimeError("Geodesic interpolation moved the start structure.")
+            path.extend(frames[1:-1])
+            current = moved(traj[i + 1], frames[-1].positions)
+        else:
+            current = moved(traj[i + 1], align_geom(current.positions, traj[i + 1].positions)[1])
+        path.append(current)
+    return path
+
+
+def select_by_distance(path, nimages):
+    """Pick nimages frames from path at equal cumulative RMSD, plus both endpoints."""
+    if len(path) < nimages + 2:
+        raise RuntimeError(f"Path has {len(path)} frames, cannot select {nimages + 2}.")
+    s = np.concatenate([[0.0], np.cumsum([rmsd(a, b) for a, b in zip(path, path[1:])])])
+    if s[-1] == 0:
+        raise ValueError("All structures are identical, the path has zero length.")
+    indices = [0]
+    for k in range(1, nimages + 1):
+        nearest = int(np.argmin(np.abs(s - k * s[-1] / (nimages + 1))))
+        # strictly increasing, and leave one frame for each remaining target and the end point
+        indices.append(min(max(nearest, indices[-1] + 1), len(path) - 2 - (nimages - k)))
+    indices.append(len(path) - 1)
+    return [path[i] for i in indices]
+
+
+def interpolation_core(traj, nimages=14, use_distance=False, verbose=False, oversample=8):
+    """Return nimages + 2 frames from traj[0] to traj[-1] along a geodesic path through all structures in traj.
+
+    Image mode: the path is split so that the output frames are separated by the same number of path frames;
+    input structures are kept wherever the numbers allow it.
+    Distance mode: a path with about oversample times more frames than the output is built, and the output
+    frames are taken from it at equal cumulative RMSD. Interior input structures are not kept.
+    All output frames share one frame of reference (see build_path).
+    """
     if len(traj) < 2:
         raise ValueError(f"Interpolation needs at least two structures, got {len(traj)}.")
-    # Basic idea: Interpolate between each image, combine the path
-    # Path is then split into equidistant images or into images separated by the same number of invisible images
-    nimages_tot = nimages + 2
-    if nimages_tot == len(traj):
-        return traj
     num_segments = len(traj) - 1
-    # Calculate smallest multiplier between nimages and segments to get total target images
-    # Efficient
-    n_target = lcm(num_segments, (nimages_tot - 1)) + 1
-    # Dumb
-    # n_target = ((nimages_tot - 1) * num_segments) + 1
-    # Distance mode will use one image twice if the number of images matches the output
-    # therefore the calculated images should be doubled if they match the output number
-    if use_distance and n_target == nimages:
+    if use_distance:
+        lengths = [align_geom(a.positions, b.positions)[0] for a, b in zip(traj, traj[1:])]
+        total = sum(lengths)
+        if total == 0:
+            raise ValueError("All structures are identical, the path has zero length.")
+        # intervals per segment proportional to its length, oversample intervals per output step
+        n_new = [max(0, math.ceil(oversample * (nimages + 1) * length / total) - 1) for length in lengths]
         if verbose:
-            print("Increasing image count for distance based interpolation")
-        n_target = ((n_target - 1) * 2) + 1
+            print("Division by distance, new frames per segment:", n_new)
+        return select_by_distance(build_path(traj, n_new), nimages)
+    # Smallest number of path intervals that both the segments and the output steps divide
+    n_intervals = lcm(num_segments, nimages + 1)
+    per_segment = n_intervals // num_segments
+    step = n_intervals // (nimages + 1)
     if verbose:
-        print("n_target", n_target) ## Debug
-
-    n_generated = n_target - 2 - (len(traj) - 2)
-    if verbose:
-        print("n_generated", n_generated)
-    n_per_segment = n_generated / num_segments
-    if verbose:
-        print("n_per_segment", n_per_segment)
-    total_trj = [traj[0]]
-    for i in range(num_segments):
-        if verbose:
-            print(f"Segment: {i+ 1} of {num_segments}")
-        geo_frames = ase_geodesic_interpolate(traj[i], traj[i + 1], n_images=n_per_segment + 1)
-        # print("geo_frames", len(geo_frames))
-        total_trj = total_trj + geo_frames[1:] + [traj[i + 1]]
-    print("Expected: ", n_target, len(total_trj))
-    if not use_distance:
-        if verbose:
-            print("Division by images")
-        ret_images = []
-        ret_images.append(total_trj[0])
-        counter = 0
-        if verbose:
-            print((n_target - 1), "/", (nimages + 1))
-        step = int((n_target - 1) / (nimages + 1))
-        if verbose:
-            print("step", step)
-        for i in range(nimages):
-            counter += step
-            ret_images.append(total_trj[counter])
-        ret_images.append(total_trj[-1])
-        return ret_images
-    else:
-        # calculate RMSD distances between all the images
-        if verbose:
-            print("Division by distance")
-        rmsds = [0]
-        srmsds = [0]
-        sum = 0
-        for i in range(int(n_target) - 1):
-            step = total_trj[i].positions - total_trj[i + 1].positions
-            rms = np.sqrt(np.mean(np.square(step)))
-            rmsds.append(rms)
-            sum += rms
-            srmsds.append(sum)
-        rmsd_per_frame = sum / (nimages + 1)
-        ret_images = []
-        if verbose:
-            print("srmsds", srmsds)
-        if verbose:
-            print("length", len(rmsds))
-        target_rmsd = []
-        for i in range(int(n_target) - 1):
-            target_rmsd.append(rmsd_per_frame * i)
-        if verbose:
-            print("target_rmsd", target_rmsd)
-        if verbose:
-            print("length", len(srmsds), len(total_trj))
-        i = 0
-        target_rmsd.append(math.inf)
-        while i in range(int(n_target)):
-            image = total_trj[i]
-            if srmsds[i] >= target_rmsd[0]:
-                ret_images.append(image)
-                target_rmsd = target_rmsd[1:]
-            else:
-                i = i + 1
-        ret_images.append(total_trj[-1])
-        return ret_images
+        print(f"Division by images, {per_segment - 1} new frames per segment, every {step}. frame is used")
+    path = build_path(traj, [per_segment - 1] * num_segments)
+    return path[::step]
 
 def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None, distance=False, verbose=False):
     if verbose:
@@ -203,6 +193,9 @@ def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None
     if structures is not None and trajectory is not None:
         print("Cannot specify both --structures and --trajectory.")
         sys.exit(1)
+    outpath = pathlib.Path(output)
+    if outpath.suffix not in (".xyz", ".allxyz"):
+        raise ValueError(f"Output file format {outpath.suffix} is not supported, use .xyz or .allxyz.")
     # Convert the input into a ase trajectory
     if structures is not None:
         if verbose:
@@ -212,35 +205,33 @@ def reinterpolate(images=14, output="traj.xyz", structures=None, trajectory=None
             atoms = read(structure)
             traj.append(atoms)
     else:
-        if os.path.splitext(pathlib.Path(trajectory))[1] == ".xyz":
+        if pathlib.Path(trajectory).suffix not in (".xyz", ".allxyz"):
+            raise ValueError(f"Trajectory file format {pathlib.Path(trajectory).suffix} is not supported, "
+                             "use .xyz or .allxyz.")
+        if pathlib.Path(trajectory).suffix == ".xyz":
             if verbose:
                 print("Reading Trajectory from input xyz file")
             traj = read(trajectory, index=":")
-        elif os.path.splitext(pathlib.Path(trajectory))[1] == ".allxyz":
+        else:
             if verbose:
                 print("Reading Trajectory from input allxyz file")
             traj = read_allxyz(trajectory)
-        else:
-            print(f"File format {os.path.splitext(pathlib.Path(trajectory))[1]} is not supported.")
     # Perform Interpolation
     traj = center_all(traj)
+    # No second center_all: it would shift every frame by its own bounding-box center. The frames are
+    # already aligned with a common center.
     output_traj = interpolation_core(traj, nimages=images, verbose=verbose, use_distance=distance)
-    output_traj = center_all(output_traj)
     print("n_output", len(output_traj))
     # Format output file
-    outpath = pathlib.Path(output)
-    if os.path.splitext(outpath)[1] == ".xyz":
+    if outpath.suffix == ".xyz":
         if verbose:
             print("Writing Trajectory to output xyz file")
         ase.io.write(outpath, output_traj, format="xyz")
-        return output_traj
-    elif os.path.splitext(outpath)[1] == ".allxyz":
+    else:
         if verbose:
             print("Writing Trajectory to output allxyz file")
         write_allxyz(output_traj, outpath)
-        return output_traj
-    else:
-        print(f"File format {os.path.splitext(outpath)[1]} is not supported.")
+    return output_traj
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
