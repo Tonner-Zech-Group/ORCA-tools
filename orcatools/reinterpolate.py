@@ -103,6 +103,8 @@ def ase_geodesic_interpolate(initial_mol, final_mol, n_images=20, friction=0.01,
 
 
 def interpolation_core(traj, nimages=14, use_distance=False, verbose=False):
+    if len(traj) < 2:
+        raise ValueError(f"Interpolation needs at least two structures, got {len(traj)}.")
     # Basic idea: Interpolate between each image, combine the path
     # Path is then split into equidistant images or into images separated by the same number of invisible images
     nimages_tot = nimages + 2
